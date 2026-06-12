@@ -1,0 +1,407 @@
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    MICROCORE (MCX) - COMPLETE SETUP GUIDE                   │
+│                              ALL FILES & STEPS                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FILE 1: NODE + EMBEDDED MINER (node_full.py)
+═══════════════════════════════════════════════════════════════════════════════
+
+DEPENDENCIES:
+─────────────────────────────────────────────────────────────────────────────
+pip install websockets cryptography requests dnspython
+
+HOW TO RUN:
+─────────────────────────────────────────────────────────────────────────────
+# First node (creates blockchain)
+python3 node_full.py --genesis
+
+# Additional nodes (join existing network)
+python3 node_full.py --peer 192.168.1.100:8081
+
+# Run node without mining (node only)
+python3 node_full.py --genesis --no-miner
+
+WHAT IT DOES:
+─────────────────────────────────────────────────────────────────────────────
+- Creates genesis block (only first node)
+- Manages blockchain and consensus (PoMA + PoS)
+- P2P sync with other nodes (port 8081)
+- DNS seed discovery for auto peer finding
+- DEX bridge for token swaps with MCX fees
+- Embedded miner (auto-starts, mines on your behalf)
+- WebSocket server for miners (port 8080)
+- Level system (100 MCX per level)
+- Slashing (10% penalty for missed signatures)
+- Reward distribution (75% validators / 8% nodes / 7% uptime / 10% LP)
+- 100M hard cap, 100 MCX reward, 4-year halving
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FILE 2: ESP32/ESP8266 MINER (esp_miner.ino)
+═══════════════════════════════════════════════════════════════════════════════
+
+HARDWARE REQUIRED:
+─────────────────────────────────────────────────────────────────────────────
+- ESP32 or ESP8266 board
+- USB cable
+- Computer with Arduino IDE
+
+ARDUINO IDE SETUP:
+─────────────────────────────────────────────────────────────────────────────
+1. Install Arduino IDE from arduino.cc
+2. File → Preferences → Additional Boards URLs
+   Add: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+3. Tools → Board → Boards Manager → Search "ESP32" → Install
+4. Tools → Board → ESP32 Dev Module
+5. Tools → Port → Select your COM port
+
+LIBRARIES TO INSTALL (Sketch → Include Library → Manage Libraries):
+─────────────────────────────────────────────────────────────────────────────
+- WebSockets by Markus Sattler
+- ArduinoJson by Benoit Blanchon
+
+EDIT BEFORE UPLOADING (find these lines in the code):
+─────────────────────────────────────────────────────────────────────────────
+const char* WIFI_SSID = "your_wifi_ssid";
+const char* WIFI_PASSWORD = "your_wifi_password";
+const char* USERNAME = "your_username";
+const char* PRIVATE_KEY_HEX = "your_64_char_private_key_hex_here";
+
+GENERATE PRIVATE KEY (on computer):
+─────────────────────────────────────────────────────────────────────────────
+openssl ecparam -name secp256k1 -genkey -noout -out private.pem
+openssl ec -in private.pem -text -noout | grep -A 3 "priv:" | tail -3 | tr -d ' \n:'
+
+UPLOAD STEPS:
+─────────────────────────────────────────────────────────────────────────────
+1. Connect ESP32 via USB
+2. Select correct Board and Port
+3. Click Upload (→ arrow button)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FILE 3: PC MINER (pc_miner.py)
+═══════════════════════════════════════════════════════════════════════════════
+
+DEPENDENCIES:
+─────────────────────────────────────────────────────────────────────────────
+pip install websockets cryptography dnspython requests
+
+HOW TO RUN:
+─────────────────────────────────────────────────────────────────────────────
+# Edit USERNAME in the file first (find this line)
+USERNAME = "your_username"
+
+# Then run
+python3 pc_miner.py
+
+FIRST RUN:
+─────────────────────────────────────────────────────────────────────────────
+- Creates wallet file microcore_wallet.json
+- Saves private key (KEEP SAFE - never share)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FILE 4: ARDUINO UNO MINER (arduino_uno_miner.ino)
+═══════════════════════════════════════════════════════════════════════════════
+
+HARDWARE REQUIRED:
+─────────────────────────────────────────────────────────────────────────────
+- Arduino Uno board
+- USB cable
+- Computer (to run bridge)
+
+ARDUINO IDE SETUP:
+─────────────────────────────────────────────────────────────────────────────
+1. Install Arduino IDE
+2. Tools → Board → Arduino Uno
+3. Tools → Port → Select your COM port
+
+LIBRARIES TO INSTALL:
+─────────────────────────────────────────────────────────────────────────────
+- ArduinoJson by Benoit Blanchon
+
+EDIT BEFORE UPLOADING:
+─────────────────────────────────────────────────────────────────────────────
+const char* USERNAME = "your_username";
+const char* PRIVATE_KEY = "your_32_byte_private_key_here";
+
+UPLOAD STEPS:
+─────────────────────────────────────────────────────────────────────────────
+1. Connect Arduino Uno via USB
+2. Select correct Board and Port
+3. Click Upload (→ arrow button)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FILE 5: WIFI BRIDGE (wifi_bridge.py)
+═══════════════════════════════════════════════════════════════════════════════
+(for Arduino Uno - runs on computer)
+
+DEPENDENCIES:
+─────────────────────────────────────────────────────────────────────────────
+pip install pyserial websockets dnspython
+
+FIND ARDUINO PORT:
+─────────────────────────────────────────────────────────────────────────────
+python -c "import serial.tools.list_ports; print([p.device for p in serial.tools.list_ports.comports()])"
+
+HOW TO RUN:
+─────────────────────────────────────────────────────────────────────────────
+# Replace COM3 with your actual port
+python3 wifi_bridge.py
+
+WHAT IT DOES:
+─────────────────────────────────────────────────────────────────────────────
+- Bridges Arduino Uno (Serial) to WebSocket
+- Auto node discovery via DNS seeds
+- Failover to backup nodes
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FILE 6: RASPBERRY PI PICO W MINER (pico_w_miner.py)
+═══════════════════════════════════════════════════════════════════════════════
+
+HARDWARE REQUIRED:
+─────────────────────────────────────────────────────────────────────────────
+- Raspberry Pi Pico W
+- USB cable
+
+INSTALL MICROPYTHON:
+─────────────────────────────────────────────────────────────────────────────
+1. Download MicroPython UF2 from raspberrypi.com
+2. Hold BOOTSEL button on Pico
+3. Connect USB
+4. Drag UF2 file to RPI-RP2 drive
+
+UPLOAD USING THONNY (easiest):
+─────────────────────────────────────────────────────────────────────────────
+1. Install Thonny from thonny.org
+2. Connect Pico W via USB
+3. Copy code to Thonny
+4. File → Save as → main.py
+5. Click Run
+
+EDIT BEFORE UPLOADING:
+─────────────────────────────────────────────────────────────────────────────
+WIFI_SSID = "your_wifi_ssid"
+WIFI_PASSWORD = "your_wifi_password"
+USERNAME = "your_username"
+PRIVATE_KEY = "your_64_char_private_key_hex"
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FILE 7: PHONE MINER (phone_miner.py)
+═══════════════════════════════════════════════════════════════════════════════
+
+iPhone (a-shell) - Install a-shell from App Store:
+─────────────────────────────────────────────────────────────────────────────
+python3 -m ensurepip
+python3 -m pip install websockets requests
+cat > phone_miner.py
+# Paste code, then Ctrl+D
+python3 phone_miner.py
+
+iPhone (iSH) - Install iSH from App Store:
+─────────────────────────────────────────────────────────────────────────────
+apk update
+apk add python3 py3-pip
+pip3 install websockets requests
+cat > phone_miner.py
+# Paste code, then Ctrl+D
+python3 phone_miner.py
+
+Android (Termux) - Install Termux from F-Droid:
+─────────────────────────────────────────────────────────────────────────────
+pkg update && pkg upgrade
+pkg install python
+pip install websockets requests
+cat > phone_miner.py
+# Paste code, then Ctrl+D
+python phone_miner.py
+
+SIMPLE VERSION (No Dependencies - Use if pip fails):
+─────────────────────────────────────────────────────────────────────────────
+cat > phone_miner_simple.py
+# Paste simple code, then Ctrl+D
+# Edit NODE_IP line to your node's IP
+python3 phone_miner_simple.py
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FILE 8: WEB WALLET + MINER (wallet.html)
+═══════════════════════════════════════════════════════════════════════════════
+
+DEPENDENCIES:
+─────────────────────────────────────────────────────────────────────────────
+None - just a web browser
+
+HOW TO USE:
+─────────────────────────────────────────────────────────────────────────────
+1. Save as wallet.html
+2. Open in any browser (Chrome, Safari, Firefox)
+3. Create wallet (enter username + password)
+4. Enter node URL (ws://YOUR_NODE_IP:8080)
+5. Click "Start Mining"
+
+FEATURES:
+─────────────────────────────────────────────────────────────────────────────
+- Username/password login
+- IP tracking (one wallet per IP)
+- MCX balance display
+- Send MCX (by username, not address)
+- Transaction ID for each send
+- Stake/Unstake with confirm modal
+- Liquidity box (liquidity provided + fees collected)
+- Provide Liquidity button (MCX + USDC fields)
+- Miner uptime meter (0h-24h progress bar)
+- Mined counter (blocks today)
+- Missed counter (resets daily)
+- Onboarded Nodes section
+- Onboarded Miners section
+- Built-in Web Miner (toggle switch)
+- Mining log (real-time)
+- Transaction history
+- Exchanges section (Uniswap, PancakeSwap, Raydium)
+- Logout button
+- Export wallet (JSON download)
+- Professional blue/white theme
+
+
+═══════════════════════════════════════════════════════════════════════════════
+FILE 9: BLOCK EXPLORER (block_explorer.html)
+═══════════════════════════════════════════════════════════════════════════════
+
+DEPENDENCIES:
+─────────────────────────────────────────────────────────────────────────────
+None - just a web browser
+
+HOW TO USE:
+─────────────────────────────────────────────────────────────────────────────
+1. Save as block_explorer.html
+2. Open in browser
+3. Enter node URL (ws://YOUR_NODE_IP:8080)
+4. View blockchain data
+
+FEATURES:
+─────────────────────────────────────────────────────────────────────────────
+- Current block number
+- Total supply
+- Active miners count
+- MCX price
+- Block list (height, hash, validators, reward, time)
+- Transaction list (hash, from, to, amount, fee, status)
+- Miner list (username, wallet, level, stake, blocks, rewards)
+- Search by block number or transaction hash
+
+
+═══════════════════════════════════════════════════════════════════════════════
+QUICK REFERENCE TABLE
+═══════════════════════════════════════════════════════════════════════════════
+
+┌──────────────────┬────────────────────────┬────────────────────────────────┐
+│ FILE             │ DEVICE                  │ HOW TO RUN                     │
+├──────────────────┼────────────────────────┼────────────────────────────────┤
+│ node_full.py     │ PC / Raspberry Pi       │ python3 node_full.py --genesis │
+├──────────────────┼────────────────────────┼────────────────────────────────┤
+│ esp_miner.ino    │ ESP32 / ESP8266         │ Upload via Arduino IDE         │
+├──────────────────┼────────────────────────┼────────────────────────────────┤
+│ pc_miner.py      │ PC / Raspberry Pi       │ python3 pc_miner.py            │
+├──────────────────┼────────────────────────┼────────────────────────────────┤
+│ arduino_uno_miner│ Arduino Uno             │ Upload via Arduino IDE         │
+├──────────────────┼────────────────────────┼────────────────────────────────┤
+│ wifi_bridge.py   │ Computer (for Arduino)  │ python3 wifi_bridge.py         │
+├──────────────────┼────────────────────────┼────────────────────────────────┤
+│ pico_w_miner.py  │ Raspberry Pi Pico W     │ Thonny or ampy upload          │
+├──────────────────┼────────────────────────┼────────────────────────────────┤
+│ phone_miner.py   │ iPhone / Android        │ python3 phone_miner.py         │
+├──────────────────┼────────────────────────┼────────────────────────────────┤
+│ wallet.html      │ Any browser             │ Open in browser                │
+├──────────────────┼────────────────────────┼────────────────────────────────┤
+│ block_explorer   │ Any browser             │ Open in browser                │
+└──────────────────┴────────────────────────┴────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+ALL DEPENDENCIES IN ONE COMMAND
+═══════════════════════════════════════════════════════════════════════════════
+
+# Python dependencies (for node, pc_miner, bridge)
+─────────────────────────────────────────────────────────────────────────────
+pip install websockets cryptography requests dnspython pyserial
+
+# Arduino dependencies (install via Arduino IDE Library Manager)
+─────────────────────────────────────────────────────────────────────────────
+- WebSockets by Markus Sattler
+- ArduinoJson by Benoit Blanchon
+
+
+═══════════════════════════════════════════════════════════════════════════════
+NETWORK PORTS
+═══════════════════════════════════════════════════════════════════════════════
+
+┌──────────┬─────────────────────────────────────────────────────────────────┐
+│ PORT     │ PURPOSE                                                         │
+├──────────┼─────────────────────────────────────────────────────────────────┤
+│ 8080     │ WebSocket port (miners connect here, wallet connects here)      │
+├──────────┼─────────────────────────────────────────────────────────────────┤
+│ 8081     │ P2P port (nodes sync with each other)                           │
+└──────────┴─────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+TOKENOMICS PARAMETERS (built into code)
+═══════════════════════════════════════════════════════════════════════════════
+
+┌──────────────────────┬─────────────────────────────────────────────────────┐
+│ PARAMETER            │ VALUE                                               │
+├──────────────────────┼─────────────────────────────────────────────────────┤
+│ Symbol               │ MCX                                                 │
+│ Name                 │ MicroCore                                           │
+│ Total Supply Cap     │ 100,000,000 MCX                                     │
+│ Initial Block Reward │ 100 MCX                                             │
+│ Halving Interval     │ 2,102,400 blocks (~4 years)                         │
+│ Level Stake Range    │ 100 MCX per level                                   │
+│ Max Level            │ 100                                                 │
+│ Validator Share      │ 75% (75 MCX per block)                              │
+│ Node Share           │ 8% (8 MCX per block)                                │
+│ Uptime Share         │ 7% (7 MCX per block)                                │
+│ LP Share             │ 10% (10 MCX per block)                              │
+│ Signing Window       │ 2.5 seconds                                         │
+│ Slash Rate           │ 10%                                                 │
+│ Min Validators       │ 10 per block                                        │
+└──────────────────────┴─────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+QUICK START (MINIMUM TO RUN A NETWORK)
+═══════════════════════════════════════════════════════════════════════════════
+
+# On your computer (the node)
+─────────────────────────────────────────────────────────────────────────────
+pip install websockets cryptography
+python3 node_full.py --genesis
+
+# On another computer (miner only)
+─────────────────────────────────────────────────────────────────────────────
+pip install websockets cryptography
+# Edit pc_miner.py USERNAME line
+python3 pc_miner.py
+
+# In browser (web miner)
+─────────────────────────────────────────────────────────────────────────────
+open wallet.html → Create wallet → Enter node IP → Start Mining
+
+# On ESP32
+─────────────────────────────────────────────────────────────────────────────
+1. Install Arduino IDE
+2. Install ESP32 board support
+3. Install WebSockets and ArduinoJson libraries
+4. Edit WiFi and USERNAME
+5. Upload esp_miner.ino
+6. Open Serial Monitor to see mining activity
+
+# Your blockchain is now LIVE
+─────────────────────────────────────────────────────────────────────────────
